@@ -23,5 +23,5 @@ Pour palier ce problème, il serait possible par exemple d'utiliser le paramètr
 
 Reste à faire :
 -------------
-Coder la récupération du SunSet.
-Probablement en incorporant un JS utilisé ici : https://www.esrl.noaa.gov/gmd/grad/solcalc/index.html
+-- Coder la récupération du SunSet, probablement en incorporant un JS utilisé ici : https://www.esrl.noaa.gov/gmd/grad/solcalc/index.html
+-- Corriger le petit écart dans le calcul des altitudes QNH des niveaux de vol

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<title>Dev briefing MTO LFEK</title>
+
+	<meta name="description" content="Une collecte automatique de données météo, extrait de ce qu'on peut trouver sur http://www.volavoile.net/index.php?showtopic=12194 et adapté pour Issoudun LFEK.">
+	<meta name="author" content="Marcos Ossedat, Baptiste DESPREZ, BFE, Billy, CPT, marc Terrier ...">
+
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+	<link rel="stylesheet" href="css/reveal.css">
+	<link rel="stylesheet" href="css/theme/sky.css" id="theme">
+	<link rel="stylesheet" href="plugin/gallery/gallery.css">
+	<link rel="stylesheet" href="css/brief.css">
+	<script src="./js/jquery-3.1.1.min.js"></script>
+
+	<!-- Code syntax highlighting -->
+	<link rel="stylesheet" href="lib/css/zenburn.css">
+
+	<!-- Printing and PDF exports -->
+	<script>
+		var link = document.createElement( 'link' );
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+		document.getElementsByTagName( 'head' )[0].appendChild( link );
+		
+		function sleep(miliseconds) {
+			var currentTime = new Date().getTime();
+			while (currentTime + miliseconds >= new Date().getTime()) {/* attendre ... */}
+		}
+	</script>
+
+	<!--[if lt IE 9]>
+	<script src="lib/js/html5shiv.js"></script>
+	<![endif]-->
+</head>
+
+<body>
+	<div class="reveal">
+		<!-- Any section element inside of this container is displayed as a slide -->
+		<div class="slides">
+			<script>
+				// On initialise la date du jour pour tout le document
+				var date = new Date();
+				var timeSince1970 = date.getTime();
+				var seconds = date.getUTCSeconds();
+				var minutes = date.getUTCMinutes();
+				var hours = date.getUTCHours();
+				var day = date.getUTCDate();
+				var month = date.getUTCMonth()+1;
+				var year = date.getUTCFullYear();
+				// faisons en sorte que le premier janvier à 8 heures 2 minutes soit 01/01/2016 08:02, et non 1/1/2016 8:2  ;-)
+				if(hours.toString().length==1){var zero = '0'; hours = zero.concat(hours);}
+				if(minutes.toString().length==1){var zero = '0'; minutes = zero.concat(minutes);}
+				if(seconds.toString().length==1){var zero = '0'; seconds = zero.concat(seconds);}
+				if(month.toString().length==1){var zero = '0'; month = zero.concat(month);}
+				if(day.toString().length==1){var zero = '0'; day = zero.concat(day);}
+				// date au format yyyymmdd
+				var ymd = year.toString().concat(month.toString().concat(day.toString()));
+
+				// Appel Ajax pour recup des TAF METAR
+				function ajaxAvwxApiCallWithCallback(reportType, oaciCode, successCallback, failureCallback) {
+					$.ajax({
+						url: "http://avwx.rest/api/" + reportType +"/" + oaciCode,
+						type: "GET",
+						dataType : "json"
+					})
+					.done(function( json ) { // en cas de succes
+						successCallback(json,reportType); // appel du callback avec le json resultat en param
+					})
+					.fail(function( xhr, statusText, errorThrown ) { // en cas d erreur
+						if (typeof failureCallback !== 'undefined') { // si callback existe
+							failureCallback(reportType, oaciCode); // appel du callback avec les param de l'appel en echec
+						} else { // sinon (pas de callback) popup js de l'erreur
+							alert( "Erreur sur requete  avwx.rest/api/" + reportType + "/" + oaciCode + ": \n - status:" + xhr.status + "\n - erreur:" + errorThrown);
+						}
+					});
+				}
+			</script>    
+
+			<!-- Premier slide -->
+			<section>
+				<h1>Dev du briefing LFEK</h1>
+				<h2>QNH - METAR - TAF</h2>
+				<h3><script>document.write(day+'/'+month+'/'+year);</script></h3>
+			</section>
+
+			<!-- METAR et TAF -->
+			<section>
+				<h4>QNH - METAR - TAF</h4>
+				<script>
+					function qnhCallback(json) {
+						updateQNH(json.Altimeter); // mise a jour du QNH dans le tableau des FL du jour (section suivante)
+						$( "<p>" ).text( 'QNH ' + json.Station  + ' : ' + json.Altimeter).appendTo( "#qnhResult" );
+					}
+					function tafMetarCallback(json, reportType) {
+						if (reportType == 'metar') {
+							$( "<p>" ).text( json["Raw-Report"] ).appendTo( "#metarResult" );
+						} else {
+							$( "<p>" ).text( json["Raw-Report"] ).appendTo( "#tafResult" );
+						}
+					}
+					function failureCallback(reportType, oaciCode) {
+						var msg = reportType + " " + oaciCode + " indisponible";
+						if (reportType == 'metar') {
+							$( "<p>" ).text( msg ).appendTo( "#metarResult" );
+						} else {
+							$( "<p>" ).text( msg ).appendTo( "#tafResult" );
+						}
+					}
+					function lireTafMetar(reportType, tabOaci, successCallback, failCallback) {
+						for (var i = 0, len = tabOaci.length; i < len; i++) {
+							ajaxAvwxApiCallWithCallback(reportType, tabOaci[i], successCallback, failCallback);
+						}
+					}
+					$(document).ready(function() {
+						lireTafMetar('metar', ['LFLX'], qnhCallback);
+						lireTafMetar('metar', ['LFLX','LFOA','LFBI','LFOT'], tafMetarCallback, failureCallback);
+						lireTafMetar('taf', ['LFLX','LFOA','LFBI','LFOT'], tafMetarCallback, failureCallback);
+					});
+				</script>
+					<div id="qnhResult"></div>
+					<div id="tafMetarContainer" style="font-size: 0.6em; overflow:auto; height:500px;">
+						<div id="metarResult"></div>
+						<div id="tafResult"></div>
+					</div>
+			</section>			
+
+		<!-- un tableau des FL du jour en fonction du QNH, et en dessous la page que j'utilise pour determiner le qnh du jour, les heures de coucher du soleil etc etc -->
+			<section>
+				<script>
+					function round5(x){
+						return Math.ceil(x/5)*5;
+					}
+		
+					$(document).ready(function() {
+						$("#qnh").change(function() {
+							var qnh_value = $("#qnh").val();
+							var mhPa = 8.5344;
+							var pMer = 1013.25;
+							var delta = 0;
+							$("#qnh").val(qnh_value);
+		
+							delta = (qnh_value - pMer) * mhPa;
+							delta = delta.toFixed(0);
+							$("#delta").text(delta);
+							
+							fl = delta*1 + 1981*1;
+							fl = round5(fl);
+							$("#FL65").text(fl);
+							
+							fl = delta*1 + 2590*1;
+							fl = round5(fl);
+							$("#FL85").text(fl);
+							
+							fl = delta*1 + 3505*1;
+							fl = round5(fl);
+							$("#FL115").text(fl);
+						});
+					});
+
+					function updateQNH(qnh) {
+							$("#qnh").val(qnh);
+							$("#qnh").trigger("change");
+					}
+				</script>
+
+				<h4>Table des Niveaux de Vol</h4>
+				<div class="div_qnh">
+					<div style="display:block;">
+						<p>QNH : <input type="text" id="qnh" class="big_input_qnh"/></p>
+						<p>Delta : <span id="delta"></span></p>
+						<table class="alti">
+							<tbody>
+							<tr>
+								<th class='centre'>Niveau de vol</th>
+								<th class='centre'>Altitude m QNH</th>
+							</tr>
+							<tr>
+								<td class='centre'>FL65</td>
+								<td class='centre' id='FL65'></td>
+							</tr>
+							<tr>
+								<td class='centre'>FL85</td>
+								<td class='centre' id='FL85'></td>
+							</tr>
+							<tr>
+								<td class='centre'>FL115</td>
+								<td class='centre' id='FL115'></td>
+							</tr>
+							</tbody>
+						</table>
+					</div>
+					<div style="display:block; margin:10px; text-align:left">
+					   <p>SS : <input type="text" id="ss" class="big_input_qnh" > </p>
+					</div>
+				</div>
+			</section>
+
+		</div>
+	</div>
+
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.js"></script>
+	<script>
+		// Full list of configuration options available at:
+		// https://github.com/hakimel/reveal.js#configuration
+		Reveal.initialize({
+			controls: true,
+			progress: true,
+			history: false,
+			center: true,
+			touch: true,
+			mouseWheel: false,
+			loop: true,
+
+			transition: 'default', // none/fade/slide/convex/concave/zoom
+
+			// Optional reveal.js plugins
+			dependencies: [
+				{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+				//{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				//{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				//{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+				//{ src: 'plugin/zoom-js/zoom.js', async: true },
+				//{ src: 'plugin/notes/notes.js', async: true },
+				{ src: 'plugin/gallery/gallery.plugin.js', async: true, condition: function() { return !!document.querySelector('.gallery'); } }
+
+			]
+		});
+		Reveal.configure({
+			autoSlide: 5000
+		});
+		Reveal.toggleAutoSlide();
+	</script>
+</body>
+</html>

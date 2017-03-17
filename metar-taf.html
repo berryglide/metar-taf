@@ -148,20 +148,16 @@
 							$("#qnh").val(qnh_value);
 		
 							delta = (qnh_value - pMer) * mhPa;
-							delta = delta.toFixed(0);
-							$("#delta").text(delta);
+							$("#delta").text(Math.round(delta));
 							
 							fl = delta*1 + 1981*1;
-							fl = round5(fl);
-							$("#FL65").text(fl);
+							$("#FL65").text(Math.round(fl));
 							
 							fl = delta*1 + 2590*1;
-							fl = round5(fl);
-							$("#FL85").text(fl);
+							$("#FL85").text(Math.round(fl));
 							
 							fl = delta*1 + 3505*1;
-							fl = round5(fl);
-							$("#FL115").text(fl);
+							$("#FL115").text(Math.round(fl));
 						});
 					});
 

@@ -29,7 +29,7 @@
 }
 
 .div_qnh {
-    max-width:90%; 
+    /*max-width:90%; */
     max-height:100%; 
     height:650px; 
 }
@@ -45,7 +45,6 @@
    border:2px solid black;
 }
 
-
 .alti tr:nth-child(even){background-color: #f2f2f2}
 .alti th {
     background-color: #4CAF50;
@@ -55,10 +54,11 @@
 .alti td {
     padding: 5px;
 }
-.alti .centre {
+
+.alti .centre th,
+.alti .centre td {
     text-align: center;
 }
-
 
 .risques {
     font-size:25px;
